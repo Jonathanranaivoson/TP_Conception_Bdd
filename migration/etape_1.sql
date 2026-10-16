@@ -18,6 +18,7 @@ CREATE TABLE plats (
     ('Soupe chinoise', 3, 5000),
     ('Mofo gasy (les 4)', 4, 1000),
     ('Ranon"ampango', 5, 500);
+    
 
 ---
 -- categorie an le sakafo eto
