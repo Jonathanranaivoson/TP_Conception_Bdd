@@ -16,15 +16,30 @@ CREATE TABLE categories (
 
 CREATE TABLE commandes (
     id SERIAL PRIMARY KEY,
-    id_plat INT NOT NULL,
-    quantite INT NOT NULL,
-    date_commande TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_commandes_plats FOREIGN KEY (id_plat) REFERENCES plats(id)
+    date_commande TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO commandes (id_plat, quantite) VALUES 
-(1, 2),
-(2, 1),
-(3, 3),
-(4, 1),
-(5, 2);
+CREATE TABLE lignes_commande (
+    id_commande INT NOT NULL, -- mety anaty commndes iray manko be plat be dia tsy atao primary key
+    id_plat INT NOT NULL,
+    quantite INT NOT NULL,
+    PRIMARY KEY (id_commande, id_plat), 
+    CONSTRAINT fk_lignes_commandes FOREIGN KEY (id_commande) REFERENCES commandes(id) ON DELETE CASCADE,
+    CONSTRAINT fk_lignes_plats FOREIGN KEY (id_plat) REFERENCES plats(id)
+);
+
+
+INSERT INTO commandes (date_commande) VALUES 
+    ('2024-06-01 12:00:00'),
+    ('2024-06-02 13:30:00'),
+    ('2024-06-03 18:45:00');
+
+INSERT INTO lignes_commande (id_commande, id_plat, quantite) VALUES 
+    (1, 1, 2),
+    (1, 3, 1),
+    (2, 2, 3),
+    (2, 4, 2),
+    (3, 5, 1),
+    (3, 6, 4);
+
+-- la quantite sera place dans la table ligne_commandes. 
