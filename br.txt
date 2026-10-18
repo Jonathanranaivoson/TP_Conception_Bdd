@@ -1,0 +1,153 @@
+-- ============================================================
+-- ETAPE 1 : LA CARTE
+-- ============================================================
+
+CREATE TABLE categories (
+    id_categorie SERIAL PRIMARY KEY, 
+    nom_categorie VARCHAR(100) UNIQUE NOT NULL
+);
+
+INSERT INTO categories (nom_categorie) VALUES 
+    ('Plat malagasy'),
+    ('Plat chinois'),
+    ('Soupe'),
+    ('Dessert et goûter'),
+    ('Boisson');
+
+CREATE TABLE plats (
+    id_plat SERIAL PRIMARY KEY,
+    nom VARCHAR(200) NOT NULL,
+    id_categorie INT NOT NULL,
+    prix INT NOT NULL,
+    CONSTRAINT fk_plats_categorie FOREIGN KEY (id_categorie) REFERENCES categories(id_categorie)
+);
+
+INSERT INTO plats (nom, id_categorie, prix) VALUES 
+    ('Romazava', 1, 7000),
+    ('Ravitoto sy henakisoa', 1, 8000),
+    ('Akoho sy voanio', 1, 8500),
+    ('Mi sao', 2, 6000),
+    ('Soupe chinoise', 3, 5000),
+    ('Mofo gasy (les 4)', 4, 1000),
+    ('Ranon''ampango', 5, 500);
+
+-- Verification Etape 1 : Plats du plus cher au moins cher
+SELECT nom, prix FROM plats ORDER BY prix DESC;
+
+
+-- ============================================================
+-- ETAPE 2 : LES CATEGORIES
+-- ============================================================
+
+SELECT c.nom_categorie, COUNT(p.id) AS nombre_de_plats
+FROM categories c
+LEFT JOIN plats p ON c.id_categorie = p.id_categorie
+GROUP BY c.id_categorie, c.nom_categorie;
+
+
+-- ============================================================
+-- ETAPE 3 : LES COMMANDES
+-- ============================================================
+
+CREATE TABLE commandes (
+    id_commande SERIAL PRIMARY KEY,
+    date_commande TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE lignes_commande (
+    id_commande INT NOT NULL,
+    id_plat INT NOT NULL,
+    quantite INT NOT NULL,
+    PRIMARY KEY (id_commande, id_plat), 
+    CONSTRAINT fk_lignes_commandes FOREIGN KEY (id_commande) REFERENCES commandes(id_commande) ON DELETE CASCADE,
+    CONSTRAINT fk_lignes_plats FOREIGN KEY (id_plat) REFERENCES plats(id_plat)
+);
+
+INSERT INTO commandes (date_commande) VALUES 
+    ('2024-06-01 12:00:00'),
+    ('2024-06-02 13:30:00'),
+    ('2024-06-03 18:45:00');
+
+INSERT INTO lignes_commande (id_commande, id_plat, quantite) VALUES 
+    (1, 1, 2),
+    (1, 3, 1),
+    (2, 2, 3),
+    (2, 4, 2),
+    (3, 5, 1),
+    (3, 6, 4);
+
+-- Verification Etape 3 : Montant total de chaque commande
+SELECT c.id_commande, c.date_commande, SUM(p.prix * lc.quantite) AS montant_total
+FROM commandes c
+JOIN lignes_commande lc ON c.id_commande = lc.id_commande
+JOIN plats p ON lc.id_plat = p.id_plat
+GROUP BY c.id_commande, c.date_commande;
+
+
+-- ============================================================
+-- ETAPE 4 : LES HABITUÉS
+-- ============================================================
+
+CREATE TABLE clients (
+    id_client SERIAL PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL
+);
+
+INSERT INTO clients (nom) VALUES 
+    ('Ouhouh'),
+    ('Ayy'),
+    ('Jo');
+
+-- Ajout de la clé étrangère facultative (NULL autorise pour les clients de passage)
+ALTER TABLE commandes ADD COLUMN id_client INT REFERENCES clients(id_client);
+
+-- Mise a jour de tests sur les commandes existantes
+UPDATE commandes SET id_client = 1 WHERE id_commande = 1;
+UPDATE commandes SET id_client = 2 WHERE id_commande = 2;
+-- La commande 3 reste a NULL (client de passage)
+
+-- Verification Etape 4 : Liste des commandes avec nom du client ou "client de passage"
+SELECT c.id_commande, 
+       c.date_commande, 
+       COALESCE(cl.nom, 'client de passage') AS client
+FROM commandes c
+LEFT JOIN clients cl ON c.id_client = cl.id_client;
+
+
+-- ============================================================
+-- ETAPE 5 : SERVEURS ET TABLES
+-- ============================================================
+
+CREATE TABLE serveurs (
+    id_serveur SERIAL PRIMARY KEY,
+    nom VARCHAR(100) NOT NULL
+);
+
+INSERT INTO serveurs (nom) VALUES
+    ('Njaka Rakoto'),
+    ('Lalao Rasoa');
+
+CREATE TABLE tables (
+    numero_table INT PRIMARY KEY
+);
+
+INSERT INTO tables (numero_table) VALUES (1), (2), (3), (4), (5), (6), (7), (8);
+
+-- Rattachement du serveur et de la table a la commande
+ALTER TABLE commandes ADD COLUMN id_serveur INT REFERENCES serveurs(id_serveur);
+ALTER TABLE commandes ADD COLUMN numero_table INT REFERENCES tables(numero_table);
+
+-- Mise a jour des commandes avec les serveurs et tables (NULL pour a emporter)
+UPDATE commandes SET id_serveur = 1, numero_table = 1 WHERE id_commande = 1;
+UPDATE commandes SET id_serveur = 2, numero_table = 3 WHERE id_commande = 2;
+UPDATE commandes SET id_serveur = 1, numero_table = NULL WHERE id_commande = 3; -- plat a emporter
+
+-- Verification Etape 5 : Nombre de commandes et chiffre d'affaires par serveur
+SELECT s.nom AS serveur,
+       COUNT(DISTINCT c.id_commande) AS nombre_commandes,
+       COALESCE(SUM(p.prix * lc.quantite), 0) AS chiffre_affaires
+FROM serveurs s
+LEFT JOIN commandes c ON s.id_serveur = c.id_serveur
+LEFT JOIN lignes_commande lc ON c.id_commande = lc.id_commande
+LEFT JOIN plats p ON lc.id_plat = p.id_plat
+GROUP BY s.id_serveur, s.nom;

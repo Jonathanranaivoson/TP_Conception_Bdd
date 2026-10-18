@@ -20,9 +20,12 @@ CREATE TABLE lignes_commande (
     CONSTRAINT fk_lignes_plats FOREIGN KEY (id_plat) REFERENCES plats(id)
 );
 
+
+--------------------
+-- mini update kely tao am le etape 3
+
 ALTER TABLE commandes ADD COLUMN nom_client VARCHAR(100) NOT NULL;
 CONSTRAINT fk_commandes_clients FOREIGN KEY (nom_client) REFERENCES clients(nom);
-
 
 
 -- etape 4
